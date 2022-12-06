@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <title>菜单列表</title>
+    <link rel="icon" th:href="@{/img/icon.ico}">
+    <link rel="stylesheet" th:href="@{/layui/css/layui.css}" media="all">
+    <link rel="stylesheet" th:href="@{/layuimini/css/public.css}" media="all">
+    <link rel="stylesheet" th:href="@{/layuimini/lib/font-awesome-4.7.0/css/font-awesome.min.css}" media="all">
+</head>
+<body>
+<div class="layuimini-container">
+    <div class="layuimini-main">
+
+        <script type="text/html" id="toolbarDemo">
+            <div class="layui-btn-container">
+                <button class="layui-btn layui-btn-normal layui-btn-sm data-add-btn" lay-event="add" shiro:hasPermission="sys:permission:info:add"><i class="layui-icon">&#xe654;</i> 新增 </button>
+                <button class="layui-btn layui-btn-normal layui-btn-sm" lay-event="expand">展开</button>
+                <button class="layui-btn layui-btn-normal layui-btn-sm" lay-event="fold">收起</button>
+            </div>
+        </script>
+
+        <table class="layui-hide" id="currentTableId" lay-filter="currentTableFilter"></table>
+
+        <script type="text/html" id="currentTableBar">
+            {{#
+            var html='<span class="toolbar_span">';
+                html+='<a src="javascript:void(0)" lay-event="delFlag" shiro:hasPermission="sys:permission:info:del">删除</a>';
+                if(0 == d.status){
+                html+= '<a src="javascript:void(0)" lay-event="status1" shiro:hasPermission="sys:permission:info:status"><div></div>禁用</a>'
+                }else if(1 == d.status){
+                html+= '<a src="javascript:void(0)" lay-event="status0" shiro:hasPermission="sys:permission:info:status"><div></div>启用</a>'
+                }
+                html+='<a src="javascript:void(0)" lay-event="update" shiro:hasPermission="sys:permission:info:edit"><div></div>编辑</a>';
+                return html+'</span>'
+            }}
+        </script>
+    </div>
+</div>
+<script type="text/javascript" th:src="@{/js/jquery-3.2.0.min.js}"></script>
+<script type="text/javascript" th:src="@{/js/common-table.js}"></script>
+<script type="text/javascript" th:src="@{/layui/layui.js}"></script>
+
+<script type="text/javascript" th:inline="javascript">
+
+    layui.use(['form', 'table','notice', 'treetable'], function () {
+        var $ = layui.jquery,
+            form = layui.form,
+            notice = layui.notice,
+            treetable = layui.treetable,
+            table = layui.table;
+
+        var ctxPath = /*[[@{/}]]*/;
+        var baseUrl = ctxPath + 'sys/sys-permission-info/';
+
+        var isShow = true;
+
+        tableRender();
+
+        function tableRender(){
+            treetable.render({
+                treeColIndex: 1,
+                treeSpid: 0,
+                treeIdName: 'id',
+                treePidName: 'pid',
+                elem: '#currentTableId',
+                url: baseUrl + 'list',
+                treeDefaultClose: !isShow,
+                method : 'post',
+                page: false,
+                toolbar: '#toolbarDemo',
+                cols: [
+                    [
+                    {type: 'numbers'},
+                    {field: 'name', minWidth: 200, title: '名称'},
+                    {field: 'icon', title: '图标', templet: function (d) {
+                        if(!!d.icon){
+                            return '<i class="'+d.icon+'"></i>';
+                        }else {
+                            return '';
+                        }
+                        }},
+                    {field: 'sign', title: '标识'},
+                    {field: 'href', title: '链接'},
+                    {field: 'target', title: '打开方式'},
+                    {field: 'type', title: '类型', templet: function (d) {
+                            if(0 == d.type){
+                                return '<span class="layui-badge layui-bg-cyan">目录</span>';
+                            }else if(1 == d.type){
+                                return '<span class="layui-badge layui-bg-blue">菜单</span>';
+                            }else if(2 == d.type){
+                                return '按钮';
+                            }
+                        }},
+                    {field: 'sort', title: '排序(值越小，越靠前)', edit: 'number'},
+                    {field: 'descript', title: '描述'},
+                    {field: 'status', title: '状态', templet: function (d) {
+                            if(0 == d.status){
+                                return '正常';
+                            }else{
+                                return '禁用';
+                            }
+                        }},
+                    {title: '操作', minWidth: 150, toolbar: '#currentTableBar', align: "center"}
+                ]
+                ]
+            });
+        }
+
+        // 监听单元格编辑
+        table.on('edit(currentTableFilter)', function(obj){
+            var value = obj.value
+                ,data = obj.data
+                ,field = obj.field;
+            if(!/^\+?[0-9][0-9]*$/.test(value)){
+                notice.error('请输入数字，且大于0');
+                return false;
+            }
+            var index = layer.load(2, {shade: 0.1});
+            $.ajax({
+                url: baseUrl + 'updateSort/' + data.id + '/' + value,
+                type: 'get',
+                dataType: 'json',
+                success: function (res) {
+                    layer.close(index);
+                    if (200 == res.code) {
+                        layer.closeAll('dialog');
+                        notice.success(res.msg);
+                        tableRender();
+                    } else {
+                        notice.error(res.msg);
+                    }
+                },
+                error: function (res) {
+                    layer.close(index);
+                    notice.error("服务器异常！");
+                }
+            });
+        });
+
+        table.on('toolbar(currentTableFilter)', function (obj) {
+            if (obj.event === 'add') {
+                layer.open({
+                    type: 2,
+                    title: '新增',
+                    shadeClose: true,
+                    shade: 0.5,
+                    area: ['45%', '100%'],
+                    content: baseUrl + 'add',
+                    offset: 'r',
+                    anim: 2,
+                    end: function(index, layero){
+                        tableRender();
+                    }
+                });
+                return false;
+            }else if(obj.event === 'expand'){
+                isShow = true;
+                treetable.expandAll('#currentTableId');
+            }else if(obj.event === 'fold'){
+                isShow = false;
+                treetable.foldAll('#currentTableId');
+            }
+        });
+
+        table.on('tool(currentTableFilter)', function (obj) {
+            var data = obj.data;
+            if (obj.event === 'update') {
+                layer.open({
+                    type: 2,
+                    title: '修改',
+                    shadeClose: true,
+                    shade: 0.5,
+                    area: ['45%', '100%'],
+                    content: baseUrl + 'update/'+data.id,
+                    offset: 'r',
+                    anim: 2,
+                    end: function(index, layero){
+                        tableRender();
+                    }
+                });
+                return false;
+            } else if (obj.event === 'delFlag') {
+                layer.confirm('确认删除该数据以及所有子级数据', {
+                    btn: ['确定'],
+                    title: '提示'
+                }, function(){
+                    var index = layer.load(2, {shade: 0.1});
+                    $.ajax({
+                        url: baseUrl + 'delete/'+data.id,
+                        type: 'get',
+                        dataType: 'json',
+                        success: function (res) {
+                            layer.close(index);
+                            if (200 == res.code) {
+                                layer.closeAll('dialog');
+                                notice.success(res.msg);
+                                tableRender();
+                            } else {
+                                notice.error(res.msg);
+                            }
+                        },
+                        error: function (res) {
+                            layer.close(index);
+                            notice.error("服务器异常！");
+                        }
+                    });
+                });
+                return false;
+            } else if (obj.event === 'status0') {
+                layer.confirm('确认启用该数据以及所有子级数据', {
+                    btn: ['确定'],
+                    title: '提示'
+                }, function(){
+                    var index = layer.load(2, {shade: 0.1});
+                    $.ajax({
+                        url: baseUrl + 'updateStatus/' + data.id + '/0',
+                        type: 'get',
+                        dataType: 'json',
+                        success: function (res) {
+                            layer.close(index);
+                            if (200 == res.code) {
+                                layer.closeAll('dialog');
+                                notice.success(res.msg);
+                                tableRender();
+                            } else {
+                                notice.error(res.msg);
+                            }
+                        },
+                        error: function (res) {
+                            layer.close(index);
+                            notice.error("服务器异常！");
+                        }
+                    });
+                });
+                return false;
+            } else if (obj.event === 'status1') {
+                layer.confirm('确认禁用该数据以及所有子级数据', {
+                    btn: ['确定'],
+                    title: '提示'
+                }, function(){
+                    var index = layer.load(2, {shade: 0.1});
+                    $.ajax({
+                        url: baseUrl + 'updateStatus/' + data.id + '/1',
+                        type: 'get',
+                        dataType: 'json',
+                        success: function (res) {
+                            layer.close(index);
+                            if (200 == res.code) {
+                                layer.closeAll('dialog');
+                                notice.success(res.msg);
+                                tableRender();
+                            } else {
+                                notice.error(res.msg);
+                            }
+                        },
+                        error: function (res) {
+                            layer.close(index);
+                            notice.error("服务器异常！");
+                        }
+                    });
+                });
+                return false;
+            }
+        });
+    });
+</script>
+
+</body>
+</html>

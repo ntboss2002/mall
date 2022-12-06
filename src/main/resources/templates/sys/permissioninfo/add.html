@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <title>新增菜单</title>
+    <link rel="icon" th:href="@{/img/icon.ico}">
+    <link rel="stylesheet" th:href="@{/layui/css/layui.css}" media="all">
+    <link rel="stylesheet" th:href="@{/layuimini/css/public.css}" media="all">
+    <link rel="stylesheet" th:href="@{/layuimini/lib/font-awesome-4.7.0/css/font-awesome.min.css}" media="all">
+    <style>
+        .layui-form-item .layui-input-company {
+            width: auto;padding-right: 10px;line-height: 38px;
+        }
+    </style>
+</head>
+<body>
+<div class="layuimini-container">
+    <div class="layuimini-main">
+
+        <form class="layui-form" action="" lay-filter="formDemo">
+            <div class="layui-form layuimini-form">
+                <div class="layui-form-item">
+                    <label class="layui-form-label required">类型</label>
+                    <div class="layui-input-block">
+                        <input type="radio" name="type" value="0" title="一级菜单" lay-filter="type" checked>
+                        <input type="radio" name="type" value="1" title='子菜单' lay-filter="type">
+                        <input type="radio" name="type" value="2" title="按钮/权限" lay-filter="type">
+                    </div>
+                </div>
+                <div class="layui-form-item" id="ppid">
+                    <label class="layui-form-label">顶级菜单</label>
+                    <div class="layui-input-block">
+                        <select name="ppid" lay-filter="ppid">
+                            <option value="0" selected>请选择</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="layui-form-item" id="pid">
+                    <label class="layui-form-label">上级菜单</label>
+                    <div class="layui-input-block">
+                        <select name="pid">
+                            <option value="0" selected>请选择</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label required">名称</label>
+                    <div class="layui-input-block">
+                        <input type="text" name="name" lay-verify="required" lay-reqtext="请输入菜单名称" placeholder="请输入" class="layui-input">
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">标识</label>
+                    <div class="layui-input-block">
+                        <input type="text" name="sign" placeholder="请输入" class="layui-input">
+                        <tip>权限标识作为唯一标识，请输入全英文</tip>
+                    </div>
+                </div>
+                <div class="layui-form-item" id="href">
+                    <label class="layui-form-label">路径</label>
+                    <div class="layui-input-block">
+                        <input type="text" name="href" placeholder="请输入" class="layui-input">
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label required">打开方式</label>
+                    <div class="layui-input-block">
+                        <select name="target" lay-verify="required" lay-reqtext="请选择打开方式">
+                            <option value="_self" selected>内链</option>
+                            <option value="_blank">外链</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="layui-form-item" id="icon">
+                    <label class="layui-form-label">图标</label>
+                    <div class="layui-input-block">
+                        <input type="text" placeholder="请选择" class="layui-input hide" id="iconPicker" lay-filter="iconPicker">
+                        <input type="text" name="icon" placeholder="请输入" class="layui-input">
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label required">排序</label>
+                    <div class="layui-input-block">
+                        <input type="number" min="0" name="sort" lay-verify="required" lay-reqtext="请输入排序" placeholder="请输入" class="layui-input" value="0">
+                        <tip>值越小，越靠前</tip>
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">描述</label>
+                    <div class="layui-input-block">
+                        <textarea name="descript" placeholder="请输入" class="layui-textarea" style="resize: none"></textarea>
+                    </div>
+                </div>
+                <div class="layui-form-item" id="btn">
+                    <label class="layui-form-label">按钮</label>
+                    <div class="layui-input-block">
+                        <div>
+                            <input type="checkbox" id="show" value="1" title="查看">
+                            <input type="checkbox" id="add" value="1" title="新增">
+                            <input type="checkbox" id="edit" value="1" title="修改">
+                            <input type="checkbox" id="del" value="1" title="删除">
+                            <input type="checkbox" id="export" value="1" title="导出">
+                        </div>
+                        <tip>同时一键生成增删改查的按钮权限</tip>
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <div class="layui-input-block">
+                        <button class="layui-btn layui-btn-normal" lay-submit lay-filter="saveBtn" shiro:hasPermission="sys:permission:info:add"> 保存 </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+<script type="text/javascript" th:src="@{/layui/layui.js}"></script>
+<script type="text/javascript" th:src="@{/layuimini/js/lay-config.js}"></script>
+
+<script type="text/javascript" th:inline="javascript">
+
+    layui.use(['form','notice','iconPickerFa'], function () {
+        var $ = layui.jquery,
+            form = layui.form,
+            layer = layui.layer,
+            iconPickerFa = layui.iconPickerFa,
+            notice = layui.notice;
+
+        var ctxPath = /*[[@{/}]]*/;
+        var baseUrl = ctxPath + 'sys/sys-permission-info/';
+
+        $('#pid').hide();
+        $('#ppid').hide();
+        $('#icon').show();
+        $('#btn').hide();
+
+        form.on('radio(type)', function(data){
+            var value = data.value;
+            // 一级菜单
+            if(0 == value){
+                $('#pid').hide();
+                $('#ppid').hide();
+                $('#btn').hide();
+                $('#icon').show();
+                $('#href').show();
+            }
+            // 二级菜单
+            else if (1 == value){
+                pidRender(0, 0);
+                $('#pid').show();
+                $('#href').show();
+                $('#btn').show();
+                $('#ppid').hide();
+                $('#icon').hide();
+            }
+            // 按钮
+            else if (2 == value){
+                ppidRender(0);
+                $('#pid').show();
+                $('#ppid').show();
+                $('#icon').hide();
+                $('#href').hide();
+                $('#btn').hide();
+            }
+        });
+
+        function ppidRender(type){
+            var str = '<option value="0">请选择</option>';
+            var index = layer.load(2, {shade: 0.1});
+            $.ajax({
+                url: baseUrl + 'listPermissionInfoByPid/' + type + '/0',
+                type: 'get',
+                dataType: 'json',
+                success: function (res) {
+                    layer.close(index);
+                    var data = res.data;
+                    if(0 < data.length){
+                        for(var i = 0, len = data.length;i < len;i++){
+                            str += '<option value="'+data[i].id+'">'+data[i].name+'</option>';
+                        }
+                    }
+                    $('select[name="ppid"]').empty();
+                    $('select[name="ppid"]').append(str);
+                    $('select[name="pid"]').empty();
+                    $('select[name="pid"]').append('<option value="0">请选择</option>');
+                    form.render();
+                }
+            });
+        }
+
+        function pidRender(type,pid){
+            var str = '<option value="0">请选择</option>';
+            var index = layer.load(2, {shade: 0.1});
+            $.ajax({
+                url: baseUrl + 'listPermissionInfoByPid/' + type + '/' + pid,
+                type: 'get',
+                dataType: 'json',
+                success: function (res) {
+                    layer.close(index);
+                    var data = res.data;
+                    if(0 < data.length){
+                        for(var i = 0, len = data.length;i < len;i++){
+                            str += '<option value="'+data[i].id+'">'+data[i].name+'</option>';
+                        }
+                    }
+                    $('select[name="pid"]').empty();
+                    $('select[name="pid"]').append(str);
+                    form.render();
+                }
+            });
+        }
+
+        form.on('select(ppid)', function(data){
+            var pid = data.value;
+            pidRender(1, pid);
+        });
+
+        iconPickerFa.render({
+            elem: '#iconPicker',
+            url: ctxPath + "layuimini/lib/font-awesome-4.7.0/less/variables.less",
+            search: true,
+            page: true,
+            limit: 20,
+            click: function (data) {
+                form.val("formDemo", {
+                    "icon": data.icon
+                });
+            }
+        });
+
+        // 监听提交
+        form.on('submit(saveBtn)', function (res) {
+            var data = res.field;
+            // 目录
+            if(0 == data.type){
+                if(!data.icon){
+                    notice.warning("请选择菜单图标");
+                    return false;
+                }
+            }
+            // 菜单
+            else if(1 == data.type){
+                if(!data.pid || 0 == data.pid){
+                    notice.warning("请选择上级菜单");
+                    return false;
+                }
+                if(!data.href){
+                    notice.warning("请输入菜单路径");
+                    return false;
+                }
+                if(!data.sign){
+                    notice.warning("请输入权限标识");
+                    return false;
+                }
+            }
+            // 按钮
+            else if(2 == data.type){
+                if(!data.pid || 0 == data.pid){
+                    notice.warning("请选择上级菜单");
+                    return false;
+                }
+                if(!data.sign){
+                    notice.warning("请输入权限标识");
+                    return false;
+                }
+            }
+            if(!!data.icon){
+                data.icon = 'fa ' + data.icon
+            }
+            var param = {
+                'data': JSON.stringify(data),
+                'pojo': JSON.stringify({
+                    'show': $('#show:checked').val(),
+                    'add': $('#add:checked').val(),
+                    'edit': $('#edit:checked').val(),
+                    'del': $('#del:checked').val()
+                })
+            }
+            var index = layer.load();
+            $.ajax({
+                url: baseUrl + 'add',
+                type: 'post',
+                dataType: 'json',
+                data: JSON.stringify(param),
+                contentType:"application/json",
+                success: function (res) {
+                    layer.close(index);
+                    if (200 == res.code) {
+                        notice.success(res.msg);
+                        setTimeout(function () {
+                            var windowIndex = parent.layer.getFrameIndex(window.name);
+                            parent.layer.close(windowIndex);
+                        },1500)
+                    }
+                    else {
+                        notice.warning(res.msg);
+                    }
+                },
+                error: function (res) {
+                    layer.close(index);
+                    notice.error("服务器异常！");
+                }
+            });
+            return false;
+        });
+    });
+</script>
+</body>
+</html>

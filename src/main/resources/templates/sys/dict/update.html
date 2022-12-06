@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <title>修改字典</title>
+    <link rel="icon" th:href="@{/img/icon.ico}">
+    <link rel="stylesheet" th:href="@{/layui/css/layui.css}" media="all">
+    <link rel="stylesheet" th:href="@{/layuimini/css/public.css}" media="all">
+    <style>
+        .layui-form-item .layui-input-company {
+            width: auto;padding-right: 10px;line-height: 38px;
+        }
+    </style>
+</head>
+<body>
+<div class="layuimini-container">
+    <div class="layuimini-main">
+
+        <form class="layui-form" action="" lay-filter="formDemo">
+            <div class="layui-form layuimini-form">
+                <div class="layui-form-item">
+                    <label class="layui-form-label required">编码</label>
+                    <div class="layui-input-block">
+                        <input type="hidden" name="id" th:value="${data.id}">
+                        <input type="text" name="code" lay-verify="required" lay-reqtext="请输入字典编码" placeholder="请输入" class="layui-input" th:value="${data.code}" disabled>
+                        <tip>字典编码作为唯一标识，请输入全英文</tip>
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label required">名称</label>
+                    <div class="layui-input-block">
+                        <input type="text" name="name" lay-verify="required" lay-reqtext="请输入字典名称" placeholder="请输入" class="layui-input" th:value="${data.name}">
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">描述</label>
+                    <div class="layui-input-block">
+                        <textarea name="descript" placeholder="请输入" class="layui-textarea" th:text="${data.descript}" style="resize: none"></textarea>
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <div class="layui-input-block">
+                        <button class="layui-btn layui-btn-sm layui-btn-normal" lay-submit lay-filter="saveBtn" shiro:hasPermission="sys:dict:edit"> 保存 </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+<script type="text/javascript" th:src="@{/layui/layui.js}"></script>
+
+<script type="text/javascript" th:inline="javascript">
+
+    layui.use(['form','notice'], function () {
+        var $ = layui.jquery,
+            form = layui.form,
+            layer = layui.layer,
+            notice = layui.notice;
+
+        var ctxPath = /*[[@{/}]]*/;
+        var baseUrl = ctxPath + 'sys/sys-dict/';
+
+        // 监听提交
+        form.on('submit(saveBtn)', function (res) {
+            var data = res.field;
+            var index = layer.load();
+            $.ajax({
+                url: baseUrl + 'update',
+                type: 'post',
+                dataType: 'json',
+                data: JSON.stringify(data),
+                contentType:"application/json",
+                success: function (res) {
+                    layer.close(index);
+                    if (200 == res.code) {
+                        notice.success(res.msg);
+                        setTimeout(function () {
+                            var windowIndex = parent.layer.getFrameIndex(window.name);
+                            parent.layer.close(windowIndex);
+                        },1500)
+                    }
+                    else {
+                        notice.warning(res.msg);
+                    }
+                },
+                error: function (res) {
+                    layer.close(index);
+                    notice.error("服务器异常！");
+                }
+            });
+            return false;
+        });
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zyxx.business.mapper.FeedBackInfoMapper">
+
+    <select id="listFeedBackInfoVO" resultType="com.zyxx.business.vo.FeedBackInfoVO">
+        SELECT
+            a.*,
+            b.`name` AS create_user_name
+        FROM
+            feed_back_info a
+            LEFT JOIN sys_user_info b ON ( a.create_user = b.id )
+        ${ew.customSqlSegment}
+    </select>
+    <select id="listFeedBackInfoVOApi" resultType="com.zyxx.business.vo.FeedBackInfoVO">
+        SELECT
+            a.*,
+            b.`name` AS type_name
+        FROM
+            feed_back_info a
+            LEFT JOIN sys_dict_detail b ON ( a.type = b.code )
+        ${ew.customSqlSegment}
+    </select>
+</mapper>

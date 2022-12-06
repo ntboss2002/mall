@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zyxx.sys.mapper.SysDictDetailMapper">
+
+    <select id="getSysDictDetail" resultType="java.lang.String">
+        SELECT
+            a.name
+        FROM
+            sys_dict_detail a
+        WHERE
+            a.dict_code = #{dictCode}
+            AND a.code = #{code}
+    </select>
+
+    <select id="queryDictItemsByCode" resultType="com.zyxx.sys.entity.SysDictDetail">
+        SELECT
+            a.`code`,
+            a.`name`
+        FROM
+            sys_dict_detail a
+        WHERE
+            a.dict_code = #{dictCode}
+    </select>
+    <select id="listSysDictDetailOnSystemStart" resultType="com.zyxx.sys.entity.SysDictDetail">
+        SELECT
+            a.dict_code,
+            a.`code`,
+            a.`name`
+        FROM
+            sys_dict_detail a
+            LEFT JOIN sys_dict b ON ( a.dict_code = b.`code` )
+        WHERE
+            b.del_flag = 0
+            AND b.`status` = 0
+    </select>
+
+</mapper>

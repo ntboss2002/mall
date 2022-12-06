@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <title>角色授权</title>
+    <link rel="icon" th:href="@{/img/icon.ico}">
+    <link rel="stylesheet" th:href="@{/layui/css/layui.css}" media="all">
+    <link rel="stylesheet" th:href="@{/layuimini/css/public.css}" media="all">
+    <style>
+        .layui-form-item .layui-input-company {
+            width: auto;padding-right: 10px;line-height: 38px;
+        }
+    </style>
+</head>
+<body>
+<div class="layuimini-container">
+    <div class="layuimini-main">
+
+        <form class="layui-form" action="" lay-filter="formDemo">
+            <div class="layui-form layuimini-form">
+                <div class="layui-form-item">
+                    <label class="layui-form-label required">角色名称</label>
+                    <div class="layui-input-block">
+                        <input type="hidden" name="id" th:value="${data.id}">
+                        <input type="text" name="name" lay-verify="required" lay-reqtext="请输入用户账号" placeholder="请输入" class="layui-input" th:value="${data.name}" disabled>
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">权限列表</label>
+                    <div class="layui-input-block">
+                        <div id="test1" style="max-height: 640px;overflow: auto"></div>
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <div class="layui-input-block">
+                        <button class="layui-btn layui-btn-sm layui-btn-normal" lay-submit lay-filter="saveBtn" shiro:hasPermission="sys:role:info:auth"> 保存 </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+<script type="text/javascript" th:src="@{/layui/layui.js}"></script>
+
+<script type="text/javascript" th:inline="javascript">
+
+    layui.use(['form','notice', 'tree'], function () {
+        var $ = layui.jquery,
+            form = layui.form,
+            layer = layui.layer,
+            tree = layui.tree,
+            notice = layui.notice;
+
+        var ctxPath = /*[[@{/}]]*/;
+        var baseUrl = ctxPath + 'sys/sys-role-info/';
+
+        redenTree();
+
+        var demo1;
+        function redenTree() {
+            var index = layer.load();
+            $.ajax({
+                url: baseUrl + 'listPermissionForTree/' + $('input[name="id"]').val(),
+                type: 'get',
+                dataType: 'json',
+                contentType:"application/json",
+                success: function (res) {
+                    layer.close(index);
+                    demo1 = tree.render({
+                        elem: '#test1'
+                        ,id: 'test1'
+                        ,showCheckbox: true
+                        ,data: res.data
+                    });
+                },
+                error: function (res) {
+                    layer.close(index);
+                    notice.error("获取角色信息失败！");
+                }
+            });
+        }
+
+        // 监听提交
+        form.on('submit(saveBtn)', function (res) {
+            var checkData = tree.getChecked('test1');
+            if(null == checkData || 0 == checkData.length){
+                notice.warning('请勾选权限信息');
+                return false;
+            }
+            var permIds = new Array();
+            var obj;
+            var item;
+            for(var i = 0,len = checkData.length;i < len;i++){
+                permIds.push(checkData[i].id);
+                obj = checkData[i].children;
+                for(var j = 0,siz = obj.length;j < siz;j++){
+                    permIds.push(obj[j].id);
+                    item = obj[j].children;
+                    for(var k = 0,max = item.length;k < max;k++){
+                        permIds.push(item[k].id);
+                    }
+                }
+            }
+            var data = res.field;
+            var index = layer.load();
+            $.ajax({
+                url: baseUrl + 'auth/' + data.id + '/' + permIds.toString(),
+                type: 'get',
+                dataType: 'json',
+                contentType:"application/json",
+                success: function (res) {
+                    layer.close(index);
+                    if (200 == res.code) {
+                        notice.success(res.msg);
+                        setTimeout(function () {
+                            var windowIndex = parent.layer.getFrameIndex(window.name);
+                            parent.layer.close(windowIndex);
+                        },1500)
+                    }
+                    else {
+                        notice.warning(res.msg);
+                    }
+                },
+                error: function (res) {
+                    layer.close(index);
+                    notice.error("服务器异常！");
+                }
+            });
+            return false;
+        });
+    });
+</script>
+</body>
+</html>

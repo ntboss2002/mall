@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <title>用户列表</title>
+    <link rel="icon" th:href="@{/img/icon.ico}">
+    <link rel="stylesheet" th:href="@{/layui/css/layui.css}" media="all">
+    <link rel="stylesheet" th:href="@{/layuimini/css/public.css}" media="all">
+</head>
+<body>
+<div class="layuimini-container">
+    <div class="layuimini-main">
+
+        <fieldset class="table-search-fieldset">
+            <legend>搜索信息(<b style="color: #1E9FFF;cursor: pointer">收起--展开</b>)</legend>
+            <div style="margin: 10px 10px 10px 10px">
+                <form class="layui-form layui-form-pane" lay-filter="search-form" th:action="@{/sys/sys-user-info/export}" id="excelForm">
+                    <div class="layui-form-item">
+                        <div class="layui-inline">
+                            <label class="layui-form-label">名称</label>
+                            <div class="layui-input-inline">
+                                <input type="text" name="name" autocomplete="off" class="layui-input" placeholder="请输入">
+                            </div>
+                        </div>
+                        <div class="layui-inline">
+                            <label class="layui-form-label">账户</label>
+                            <div class="layui-input-inline">
+                                <input type="text" name="account" autocomplete="off" class="layui-input" placeholder="请输入">
+                            </div>
+                        </div>
+                        <div class="layui-inline">
+                            <label class="layui-form-label">电话</label>
+                            <div class="layui-input-inline">
+                                <input type="text" name="phone" autocomplete="off" class="layui-input" placeholder="请输入">
+                            </div>
+                        </div>
+                        <div class="layui-inline">
+                            <label class="layui-form-label">性别</label>
+                            <div class="layui-input-inline">
+                                <select name="sex">
+                                    <option value="" selected>请选择</option>
+                                    <option th:each="item : ${sex}" th:value="${item.code}" th:text="${item.name}"></option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="layui-inline">
+                            <label class="layui-form-label">状态</label>
+                            <div class="layui-input-inline">
+                                <select name="status">
+                                    <option value="" selected>请选择</option>
+                                    <option th:each="item : ${status}" th:value="${item.code}" th:text="${item.name}"></option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="layui-inline">
+                            <button type="submit" class="layui-btn layui-btn-sm layui-bg-blue" lay-submit lay-filter="data-search-btn"><i class="layui-icon"></i> 搜 索 </button>
+                            <button type="submit" class="layui-btn layui-btn-sm layui-btn-primary" lay-submit lay-filter="data-reset-btn"><i class="layui-icon">&#xe669;</i> 重 置 </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </fieldset>
+
+        <script type="text/html" id="toolbarDemo">
+            <div class="layui-btn-container">
+                <button class="layui-btn layui-btn-normal layui-btn-sm data-add-btn" lay-event="add" shiro:hasPermission="sys:user:info:add"><i class="layui-icon">&#xe654;</i> 新增 </button>
+                <button class="layui-btn layui-btn-normal layui-btn-sm data-add-btn" lay-event="export" shiro:hasPermission="sys:user:info:export"><i class="layui-icon">&#xe67d;</i> 导出 </button>
+            </div>
+        </script>
+
+        <table class="layui-hide" id="currentTableId" lay-filter="currentTableFilter"></table>
+
+        <script type="text/html" id="currentTableBar">
+            {{#
+            var html='<span class="toolbar_span">';
+                html+='<a src="javascript:void(0)" lay-event="delFlag" shiro:hasPermission="sys:user:info:del">删除</a>';
+                if(0 == d.status){
+                html+= '<a src="javascript:void(0)" lay-event="status1" shiro:hasPermission="sys:user:info:status"><div></div>禁用</a>'
+                }else if(1 == d.status){
+                html+= '<a src="javascript:void(0)" lay-event="status0" shiro:hasPermission="sys:user:info:status"><div></div>启用</a>'
+                }
+                html+='<a src="javascript:void(0)" lay-event="update" shiro:hasPermission="sys:user:info:edit"><div></div>编辑</a>';
+                html+='<a src="javascript:void(0)" lay-event="auth" shiro:hasPermission="sys:user:info:auth"><div></div>授权</a>';
+                html+='<a src="javascript:void(0)" lay-event="updatepassword" shiro:hasPermission="sys:user:info:editpassword"><div></div>修改密码</a>';
+                return html+'</span>'
+            }}
+        </script>
+    </div>
+</div>
+<script type="text/javascript" th:src="@{/js/jquery-3.2.0.min.js}"></script>
+<script type="text/javascript" th:src="@{/js/common-table.js}"></script>
+<script type="text/javascript" th:src="@{/layui/layui.js}"></script>
+
+<script type="text/javascript" th:inline="javascript">
+
+    layui.use(['form', 'table','notice'], function () {
+        var $ = layui.jquery,
+            form = layui.form,
+            notice = layui.notice,
+            table = layui.table;
+
+        var ctxPath = /*[[@{/}]]*/;
+        var baseUrl = ctxPath + 'sys/sys-user-info/';
+
+        var currTable = table.render({
+            elem: '#currentTableId',
+            url: baseUrl + 'list',
+            method : 'post',
+            toolbar: '#toolbarDemo',
+            height : $(document).height() - $('.table-search-fieldset').height() - 80,
+            defaultToolbar: ['filter', 'exports', 'print', {
+                title: '提示',
+                layEvent: 'LAYTABLE_TIPS',
+                icon: 'layui-icon-tips'
+            }],
+            where: form.val("search-form"),
+            cols: [
+                [
+                {field: '', title: '', type:'numbers', templet: function (d) {return d.LAY_TABLE_INDEX + 1;}},
+                {field: 'account', title: '账户'},
+                {field: 'name', title: '名称'},
+                {field: 'avatar', title: '头像', templet: function (d) {
+                        if(!!d.avatar){
+                            return '<img src="'+d.avatar+'" class="avatar-show">';
+                        }else {
+                            return '';
+                        }
+                    }},
+                {field: 'phone', title: '电话'},
+                {field: 'sexText', title: '性别'},
+                {field: 'statusText', title: '状态'},
+                {field: 'createTime', title: '创建时间'},
+                {title: '操作', minWidth: 150, toolbar: '#currentTableBar', align: "center", fixed: 'right'}
+            ]
+            ],
+            limits: [10, 15, 20, 25, 50, 100],
+            limit: 20,
+            page: true
+        });
+
+        // 监听搜索操作
+        form.on('submit(data-search-btn)', function (data) {
+            //执行搜索重载
+            table.reload('currentTableId', {
+                page: {
+                    curr: 1
+                }
+                , where: form.val("search-form")
+            }, 'data');
+            return false;
+        });
+
+        // 重置搜索
+        form.on('submit(data-reset-btn)', function (data) {
+            form.val("search-form", {
+                "name": ''
+                ,"account": ''
+                ,"phone": ''
+                ,"sex": ''
+                ,"status": ''
+            });
+            // 执行搜索重载
+            table.reload('currentTableId', {
+                page: {
+                    curr: 1
+                }
+                , where: form.val("search-form")
+            }, 'data');
+            return false;
+        });
+
+        // 表头工具
+        table.on('toolbar(currentTableFilter)', function (obj) {
+            if (obj.event === 'add') {
+                layer.open({
+                    type: 2,
+                    title: '新增',
+                    shadeClose: true,
+                    shade: 0.5,
+                    area: ['45%', '100%'],
+                    content: baseUrl + 'add',
+                    offset: 'r',
+                    anim: 2,
+                    end: function(index, layero){
+                        currTable.reload();
+                    }
+                });
+                return false;
+            } else if(obj.event === 'export'){
+                $('#excelForm').submit();
+            }
+        });
+
+        // 表行工具
+        table.on('tool(currentTableFilter)', function (obj) {
+            var data = obj.data;
+            if (obj.event === 'update') {
+                layer.open({
+                    type: 2,
+                    title: '修改',
+                    shadeClose: true,
+                    shade: 0.5,
+                    area: ['45%', '100%'],
+                    content: baseUrl + 'update/'+data.id,
+                    offset: 'r',
+                    anim: 2,
+                    end: function(index, layero){
+                        currTable.reload();
+                    }
+                });
+                return false;
+            } else if (obj.event === 'auth') {
+                layer.open({
+                    type: 2,
+                    title: '授权',
+                    shadeClose: true,
+                    shade: 0.5,
+                    area: ['45%', '100%'],
+                    content: baseUrl + 'auth/'+data.id,
+                    offset: 'r',
+                    anim: 2,
+                    end: function(index, layero){
+                        currTable.reload();
+                    }
+                });
+                return false;
+            } else if (obj.event === 'updatepassword') {
+                layer.prompt({
+                    formType: 0,
+                    value: '123456',
+                    title: '请输入密码'
+                }, function(value, prompt, elem){
+                    var index = layer.load(2, {shade: 0.1});
+                    $.ajax({
+                        url: baseUrl + 'updatepassword/' + data.id + "/" + value,
+                        type: 'get',
+                        dataType: 'json',
+                        success: function (res) {
+                            layer.close(index);
+                            if (200 == res.code) {
+                                layer.closeAll('dialog');
+                                notice.success(res.msg);
+                                currTable.reload();
+                            } else {
+                                notice.error(res.msg);
+                            }
+                        },
+                        error: function (res) {
+                            layer.close(index);
+                            notice.error("服务器异常！");
+                        }
+                    });
+                    layer.close(prompt);
+                });
+                return false;
+            } else if (obj.event === 'delFlag') {
+                layer.confirm('确认删除', {
+                    btn: ['确定'],
+                    title: '提示'
+                }, function(){
+                    var index = layer.load(2, {shade: 0.1});
+                    $.ajax({
+                        url: baseUrl + 'delete/' + data.id,
+                        type: 'get',
+                        dataType: 'json',
+                        success: function (res) {
+                            layer.close(index);
+                            if (200 == res.code) {
+                                layer.closeAll('dialog');
+                                notice.success(res.msg);
+                                currTable.reload();
+                            } else {
+                                notice.error(res.msg);
+                            }
+                        },
+                        error: function (res) {
+                            layer.close(index);
+                            notice.error("服务器异常！");
+                        }
+                    });
+                });
+                return false;
+            } else if (obj.event === 'status0') {
+                layer.confirm('确认启用', {
+                    btn: ['确定'],
+                    title: '提示'
+                }, function(){
+                    var index = layer.load(2, {shade: 0.1});
+                    $.ajax({
+                        url: baseUrl + 'updateStatus/' + data.id + '/0',
+                        type: 'get',
+                        dataType: 'json',
+                        success: function (res) {
+                            layer.close(index);
+                            if (200 == res.code) {
+                                layer.closeAll('dialog');
+                                notice.success(res.msg);
+                                currTable.reload();
+                            } else {
+                                notice.error(res.msg);
+                            }
+                        },
+                        error: function (res) {
+                            layer.close(index);
+                            notice.error("服务器异常！");
+                        }
+                    });
+                });
+                return false;
+            } else if (obj.event === 'status1') {
+                layer.confirm('确认禁用', {
+                    btn: ['确定'],
+                    title: '提示'
+                }, function(){
+                    var index = layer.load(2, {shade: 0.1});
+                    $.ajax({
+                        url: baseUrl + 'updateStatus/' + data.id + '/1',
+                        type: 'get',
+                        dataType: 'json',
+                        success: function (res) {
+                            layer.close(index);
+                            if (200 == res.code) {
+                                layer.closeAll('dialog');
+                                notice.success(res.msg);
+                                currTable.reload();
+                            } else {
+                                notice.error(res.msg);
+                            }
+                        },
+                        error: function (res) {
+                            layer.close(index);
+                            notice.error("服务器异常！");
+                        }
+                    });
+                });
+                return false;
+            }
+        });
+    });
+</script>
+
+</body>
+</html>

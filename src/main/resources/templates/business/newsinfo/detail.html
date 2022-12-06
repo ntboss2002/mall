@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <title>新闻资讯详情</title>
+    <link rel="icon" th:href="@{/img/icon.ico}">
+    <link rel="stylesheet" th:href="@{/layuimini/css/public.css}" media="all">
+    <style type="text/css">
+        body{
+            width: 55%;
+            margin: 15px auto;
+        }
+        h2 {
+            font: normal 22px/35px "黑体";
+            color: #000;
+            text-align: center;
+        }
+        .one{
+            font-size: 12px;
+            text-align: center;
+        }
+        .gray{
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+<div class="layuimini-container">
+    <div class="layuimini-main" style="padding: 0 20px;overflow: hidden;">
+        <h2 th:text="${data.title}"></h2>
+        <p class="one gray">时间：<em th:text="${#dates.format(data.createTime, 'yyyy年MM月dd日')}"></em>&nbsp;</p>
+        <hr/>
+        <div th:utext="${data.content}"></div>
+    </div>
+</div>
+</body>
+</html>

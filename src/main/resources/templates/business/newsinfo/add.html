@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <title>新增新闻资讯</title>
+    <link rel="icon" th:href="@{/img/icon.ico}">
+    <link rel="stylesheet" th:href="@{/layui/css/layui.css}" media="all">
+    <link rel="stylesheet" th:href="@{/layuimini/css/public.css}" media="all">
+    <style>
+        .layui-form-item .layui-input-company {
+            width: auto;padding-right: 10px;line-height: 38px;
+        }
+    </style>
+</head>
+<body>
+<div class="layuimini-container">
+    <div class="layuimini-main">
+
+        <form class="layui-form" action="" lay-filter="formDemo">
+            <div class="layui-form layuimini-form">
+                <div class="layui-form-item">
+                    <label class="layui-form-label required">标题</label>
+                    <div class="layui-input-block">
+                        <input type="text" name="title" placeholder="请输入" class="layui-input" lay-verify="required" lay-reqtext="请输入标题" maxlength="30">
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label required">类型</label>
+                    <div class="layui-input-block">
+                        <select name="type" lay-filter="category" lay-verify="required" lay-reqtext="请选择类型">
+                            <option value="" selected>请选择</option>
+                            <option th:each="item : ${type}" th:value="${item.code}" th:text="${item.name}"></option>
+                        </select>
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label required">封面</label>
+                    <div class="layui-input-block">
+                        <input type="hidden" name="cover">
+                        <div style="height: 100px;width: 200px;position: relative;">
+                            <input type="file" accept="image/*" id="pic-input" style="position: absolute;left: 0;top: 0;opacity: 0;filter: alpha(opacity=0);height: 100%;width: 100%;z-index: 99">
+                            <img src="" alt="" id="pic-img" style="height: 100%;width: 100%;position: absolute;left: 0;top: 0;border: 1px solid #1E9FFF;">
+                        </div>
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label required">内容</label>
+                    <div class="layui-input-block">
+                        <textarea id="content" style="display: none;"></textarea>
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label required">显示顺序</label>
+                    <div class="layui-input-block">
+                        <input type="number" name="sort" placeholder="请输入" class="layui-input" value="0">
+                        <tip>值越大，越靠前</tip>
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <div class="layui-input-block">
+                        <button class="layui-btn layui-btn-sm layui-btn-normal" lay-submit lay-filter="saveBtn" shiro:hasPermission="business:news:info:add"> 保存 </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+<script type="text/javascript" th:src="@{/layui/layui.js}"></script>
+
+<script type="text/javascript" th:inline="javascript">
+
+    layui.use(['form','notice','layedit'], function () {
+        var $ = layui.jquery,
+            form = layui.form,
+            layedit = layui.layedit,
+            layer = layui.layer,
+            notice = layui.notice;
+
+        var ctxPath = /*[[@{/}]]*/;
+        var baseUrl = ctxPath + 'business/news-info/';
+
+        layedit.set({
+            uploadImage: {
+                type: 'post',
+                url: ctxPath + 'sys-minio/uploadEdit'
+            }
+        });
+
+        var editIndex = layedit.build('content',{
+            height: 400
+        });
+
+        $('#pic-input').change(function () {
+            var formData = new FormData();
+            formData.append("files", $("#pic-input")[0].files[0]);
+            var index = layer.load();
+            $.ajax({
+                type : "POST",
+                cache: false,
+                dataType: "json",
+                data : formData,
+                headers:{'Minio-dir': 'news_info'},
+                processData :  false,
+                contentType :  false,
+                url: ctxPath + 'sys/sys-minio/uploadFileAjax',
+                success:function(res){
+                    layer.close(index);
+                    if(200 == res.code){
+                        $("input[name='cover']").val(res.data);
+                        $('#pic-img').attr('src',res.data);
+                        notice.success('上传成功');
+                    }else{
+                        notice.warning('上传失败');
+                    }
+                },
+                error:function() {
+                    layer.close(index);
+                    notice.error("服务器异常！");
+                }
+            });
+        });
+
+        // 监听提交
+        form.on('submit(saveBtn)', function (res) {
+            var data = res.field;
+            if(!data.cover){
+                layer.msg('请上传封面图片');
+                return false;
+            }
+            var content = layedit.getContent(editIndex);
+            if(!content){
+                layer.msg('请填写内容');
+                return false;
+            }
+            data.content = content;
+            var index = layer.load();
+            $.ajax({
+                url: baseUrl + 'add',
+                type: 'post',
+                dataType: 'json',
+                data: JSON.stringify(data),
+                contentType:"application/json",
+                success: function (res) {
+                    layer.close(index);
+                    if (200 == res.code) {
+                        notice.success(res.msg);
+                        setTimeout(function () {
+                            var windowIndex = parent.layer.getFrameIndex(window.name);
+                            parent.layer.close(windowIndex);
+                        },1500)
+                    }
+                    else {
+                        notice.warning(res.msg);
+                    }
+                },
+                error: function (res) {
+                    layer.close(index);
+                    notice.error("服务器异常！");
+                }
+            });
+            return false;
+        });
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <title>Redis监控</title>
+    <link rel="icon" th:href="@{/img/icon.ico}">
+    <link rel="stylesheet" th:href="@{/layui/css/layui.css}" media="all">
+    <link rel="stylesheet" th:href="@{/layuimini/css/public.css}" media="all">
+</head>
+<body>
+<div class="layuimini-container">
+    <div class="layuimini-main">
+
+        <fieldset class="table-search-fieldset">
+            <legend>搜索信息(<b style="color: #1E9FFF;cursor: pointer">收起--展开</b>)</legend>
+            <div style="margin: 10px 10px 10px 10px">
+                <form class="layui-form layui-form-pane" lay-filter="search-form" action="">
+                    <div class="layui-form-item">
+                        <div class="layui-inline">
+                            <label class="layui-form-label">键(key)</label>
+                            <div class="layui-input-inline">
+                                <input type="text" name="perfix" autocomplete="off" class="layui-input" placeholder="请输入键（key）或前缀">
+                            </div>
+                        </div>
+                        <div class="layui-inline">
+                            <button type="submit" class="layui-btn layui-btn-sm layui-bg-blue" lay-submit lay-filter="data-search-btn"><i class="layui-icon"></i> 搜 索 </button>
+                            <button type="submit" class="layui-btn layui-btn-sm layui-btn-primary" lay-submit lay-filter="data-reset-btn"><i class="layui-icon">&#xe669;</i> 重 置 </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </fieldset>
+
+        <script type="text/html" id="toolbarDemo">
+            <div class="layui-btn-container">
+                <button class="layui-btn layui-btn-normal layui-btn-sm data-add-btn" lay-event="add" shiro:hasPermission="sys:redis:add"><i class="layui-icon">&#xe654;</i> 新增 </button>
+                <button class="layui-btn layui-btn-normal layui-btn-sm data-add-btn" lay-event="delete" shiro:hasPermission="sys:redis:del"><i class="layui-icon">&#xe67e;</i> 删除 </button>
+            </div>
+        </script>
+
+        <table class="layui-hide" id="currentTableId" lay-filter="currentTableFilter"></table>
+
+        <script type="text/html" id="currentTableBar">
+            <span class="toolbar_span">
+                <a src="javascript:void(0)" lay-event="delFlag" shiro:hasPermission="sys:redis:del">删除</a>
+                <a src="javascript:void(0)" lay-event="update" shiro:hasPermission="sys:redis:edit"><div></div>编辑</a>
+            </span>
+        </script>
+    </div>
+</div>
+<script type="text/javascript" th:src="@{/js/jquery-3.2.0.min.js}"></script>
+<script type="text/javascript" th:src="@{/js/common-table.js}"></script>
+<script type="text/javascript" th:src="@{/layui/layui.js}"></script>
+
+<script type="text/javascript" th:inline="javascript">
+
+    layui.use(['form', 'table','notice'], function () {
+        var $ = layui.jquery,
+            form = layui.form,
+            notice = layui.notice,
+            table = layui.table;
+
+        var ctxPath = /*[[@{/}]]*/;
+        var baseUrl = ctxPath + 'sys/sys-redis/';
+
+        var currTable = table.render({
+            elem: '#currentTableId',
+            id: 'currentTableId',
+            url: baseUrl + 'list',
+            method : 'get',
+            toolbar: '#toolbarDemo',
+            height : $(document).height() - $('.table-search-fieldset').height() - 80,
+            defaultToolbar: ['filter', 'exports', 'print', {
+                title: '提示',
+                layEvent: 'LAYTABLE_TIPS',
+                icon: 'layui-icon-tips'
+            }],
+            where: form.val("search-form"),
+            cols: [
+                [
+                {type: "checkbox", width: 50},
+                {field: '', title: '', type:'numbers', templet: function (d) {return d.LAY_TABLE_INDEX + 1;}},
+                {field: 'key', title: '键（key）'},
+                {field: 'value', title: '值（value）'},
+                {title: '操作', minWidth: 150, toolbar: '#currentTableBar', align: "center"}
+            ]
+            ],
+            limits: [10, 15, 20, 25, 50, 100],
+            limit: 20,
+            page: false
+        });
+
+        // 监听搜索操作
+        form.on('submit(data-search-btn)', function (data) {
+            //执行搜索重载
+            table.reload('currentTableId', {
+                page: {
+                    curr: 1
+                }
+                , where: form.val("search-form")
+            }, 'data');
+            return false;
+        });
+
+        // 重置搜索
+        form.on('submit(data-reset-btn)', function (data) {
+            form.val("search-form", {
+                "perfix": ''
+            });
+            // 执行搜索重载
+            table.reload('currentTableId', {
+                page: {
+                    curr: 1
+                }
+                , where: form.val("search-form")
+            }, 'data');
+            return false;
+        });
+
+        // 表头工具
+        table.on('toolbar(currentTableFilter)', function (obj) {
+            if (obj.event === 'add') {
+                layer.open({
+                    type: 2,
+                    title: '新增',
+                    shadeClose: true,
+                    shade: 0.5,
+                    area: ['45%', '100%'],
+                    content: baseUrl + 'add',
+                    offset: 'r',
+                    anim: 2,
+                    end: function(index, layero){
+                        currTable.reload();
+                    }
+                });
+                return false;
+            } else if('delete' === obj.event){
+                var res = table.checkStatus('currentTableId');
+                var data = res.data;
+                if(null != data && 0 < data.length){
+                    var keyArr = new Array();
+                    for(var i = 0,len = data.length;i < len;i++){
+                        keyArr.push(data[i].key);
+                    }
+                    layer.confirm('确认删除', {
+                        btn: ['确定'],
+                        title: '提示'
+                    }, function(){
+                        var index = layer.load(2, {shade: 0.1});
+                        $.ajax({
+                            url: baseUrl + 'delete/' + keyArr.toString(),
+                            type: 'get',
+                            dataType: 'json',
+                            success: function (res) {
+                                layer.close(index);
+                                if (200 == res.code) {
+                                    layer.closeAll('dialog');
+                                    notice.success(res.msg);
+                                    currTable.reload();
+                                } else {
+                                    notice.error(res.msg);
+                                }
+                            },
+                            error: function (res) {
+                                layer.close(index);
+                                notice.error("服务器异常！");
+                            }
+                        });
+                    });
+                }else{
+                    notice.warning('请选择需要操作的数据');
+                }
+                return false;
+            }
+        });
+
+        // 表行工具
+        table.on('tool(currentTableFilter)', function (obj) {
+            var data = obj.data;
+            if (obj.event === 'update') {
+                layer.open({
+                    type: 2,
+                    title: '修改',
+                    shadeClose: true,
+                    shade: 0.5,
+                    area: ['45%', '100%'],
+                    content: baseUrl + 'update/'+data.key,
+                    offset: 'r',
+                    anim: 2,
+                    end: function(index, layero){
+                        currTable.reload();
+                    }
+                });
+                return false;
+            } else if (obj.event === 'delFlag') {
+                layer.confirm('确认删除', {
+                    btn: ['确定'],
+                    title: '提示'
+                }, function(){
+                    var index = layer.load(2, {shade: 0.1});
+                    $.ajax({
+                        url: baseUrl + 'delete/' + data.key,
+                        type: 'get',
+                        dataType: 'json',
+                        success: function (res) {
+                            layer.close(index);
+                            if (200 == res.code) {
+                                layer.closeAll('dialog');
+                                notice.success(res.msg);
+                                currTable.reload();
+                            } else {
+                                notice.error(res.msg);
+                            }
+                        },
+                        error: function (res) {
+                            layer.close(index);
+                            notice.error("服务器异常！");
+                        }
+                    });
+                });
+                return false;
+            }
+        });
+    });
+</script>
+
+</body>
+</html>
